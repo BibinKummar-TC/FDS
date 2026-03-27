@@ -1,0 +1,134 @@
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+np.random.seed(42)
+n = 1000
+
+data = pd.DataFrame({
+    'age': np.random.randint(18, 70, n),
+    'income': np.random.randint(20000, 100000, n),
+    'discount': np.random.uniform(0, 0.5, n),
+    'visits': np.random.randint(1, 20, n)
+})
+
+data['purchase_amount'] = (
+    0.3 * data['income'] * data['discount'] +
+    10 * data['visits'] +
+    np.random.normal(0, 1000, n)
+)
+
+data['purchased'] = (data['purchase_amount'] > data['purchase_amount'].mean()).astype(int)
+
+print("\n--- Dataset Created ---")
+print(data.head())
+
+
+arr = data[['age', 'income', 'discount', 'visits']].values
+reshaped = arr.reshape(-1, 4)
+
+print("\n--- NumPy Reshape ---")
+print("Shape:", reshaped.shape)
+print("First 5 rows:\n", reshaped[:5])
+
+
+data.loc[0:20, 'income'] = np.nan
+
+print("\nMissing Before:\n", data.isnull().sum())
+
+data['income'] = data['income'].fillna(data['income'].mean())
+
+print("Missing After:\n", data.isnull().sum())
+
+plt.figure()
+plt.hist(data['income'])
+plt.title("Income Distribution After Cleaning")
+plt.show()
+
+
+sampled_data = data.sample(frac=0.25, random_state=42)
+
+print("\n--- Sampling ---")
+print("Original:", len(data))
+print("Sampled:", len(sampled_data))
+
+plt.figure()
+plt.hist(data['purchase_amount'], alpha=0.5)
+plt.hist(sampled_data['purchase_amount'], alpha=0.5)
+plt.title("Sampling Comparison")
+plt.show()
+
+
+corr = sampled_data.corr()
+
+print("\n--- Correlation Matrix ---\n", corr)
+
+plt.figure()
+sns.heatmap(corr, annot=True)
+plt.title("Correlation Heatmap")
+plt.show()
+
+X_lr = sampled_data[['discount']]
+y_lr = sampled_data['purchase_amount']
+
+lr = LinearRegression()
+lr.fit(X_lr, y_lr)
+
+print("\n--- Linear Regression ---")
+print("Coefficient:", lr.coef_)
+print("Intercept:", lr.intercept_)
+
+plt.figure()
+plt.scatter(X_lr, y_lr)
+plt.plot(X_lr, lr.predict(X_lr))
+plt.title("Discount vs Purchase Amount")
+plt.show()
+
+X = sampled_data[['age', 'income', 'discount', 'visits']]
+y = sampled_data['purchased']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y)
+
+log_model = LogisticRegression(max_iter=1000)
+log_model.fit(X_train, y_train)
+
+y_pred = log_model.predict(X_test)
+
+print("\n--- Logistic Regression ---")
+print("Accuracy:", accuracy_score(y_test, y_pred))
+
+plt.figure()
+plt.hist(y_pred)
+plt.title("Predicted Purchases")
+plt.show()
+
+def simulate(d_inc):
+    temp = sampled_data.copy()
+    temp['discount'] += d_inc
+    temp['purchase_amount'] = (
+        0.3 * temp['income'] * temp['discount'] +
+        10 * temp['visits']
+    )
+    return temp['purchase_amount'].sum()
+
+base = sampled_data['purchase_amount'].sum()
+new = simulate(0.1)
+
+print("\n--- Financial Simulation ---")
+print("Base Revenue:", base)
+print("New Revenue:", new)
+
+plt.figure()
+plt.bar(['Base', 'New'], [base, new])
+plt.title("Revenue Comparison")
+plt.show()
+print("\n--- Final Insights ---")
+print("1. Discounts increase purchase amount")
+print("2. Logistic model predicts customer behavior")
+print("3. Increasing discount improves revenue")
